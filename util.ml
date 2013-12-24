@@ -12,6 +12,7 @@ let str_of_patchSegment segment =
 
 
 let strdrop s n = String.sub s n ((String.length s) - n);;
+let strtake s n = String.sub s 0 n;;
 
 (* Reader -> option Reader *)
 let advanceReader r dist =
@@ -94,20 +95,43 @@ let rec apply lhs rhs =
     | (_, (Reader (DelChars n)) :: rxs) -> (Reader (DelChars n)) :: (apply lhs rxs)
     (* copy down lhs ins *)
     | ( (InsChars s)::lxs, _) -> (InsChars s) :: (apply lxs rhs)
+
     (* lhs del *)
     | ( (Reader (DelChars m))::lxs, (Reader (KeepChars n))::rxs) ->
-        (Reader (DelChars (min m n))) :: (apply [] [])
+        let consumed = (min m n) in
+        (Reader (DelChars consumed)) :: (apply 
+            (if m > consumed then (del (m - consumed))::lxs else lxs)
+            (if n > consumed then (keep (n - consumed))::rxs else rxs)
+        )
+
     | ( (Reader (DelChars m))::lxs, (InsChars s)::rxs) ->
-        (* ??? :: *) (apply [] [])
+        let slen = (String.length s) in
+        let consumed = (min m slen) in
+        (apply
+            (if m > consumed then (del (m-consumed))::lxs else lxs) (* carry over leftover deletion *)
+            (if slen > consumed then (ins (strdrop s consumed))::rxs else rxs) (* ditto leftover text *)
+        )
+
     (* lhs keep *)
     | ( (Reader (KeepChars m))::lxs, (Reader (KeepChars n))::rxs) ->
-        (Reader (KeepChars (min m n))) :: (apply [] [])
+        let consumed = (min m n) in
+        (Reader (KeepChars (min m n))) :: (apply
+            (if m > consumed then (keep (m - consumed))::lxs else lxs)
+            (if n > consumed then (keep (n - consumed))::rxs else rxs)
+        )
+
     | ( (Reader (KeepChars m))::lxs, (InsChars s)::rxs) ->
-        (InsChars s) :: (apply [] [])
+        let slen = (String.length s) in
+        let consumed = (min m slen) in
+        (InsChars (strtake s consumed)) :: (apply
+            (if m > consumed then (keep (m-consumed))::lxs else lxs)
+            (if slen > consumed then (InsChars (strdrop s consumed))::rxs else rxs)
+        )
+
     (* starved reader error *)
     | ( (Reader _)::_, []) -> failwith "Starved reader"
     (* dangling writer error *)
     | ( [], (InsChars _)::_ ) -> failwith "Dangling insert"
-    | ( [], (Reader (KeepChars _))::_) -> failwith "Dangling Keeper"
+    | ( [], (Reader (KeepChars _))::_) -> failwith "Dangling Keeper in source"
 ;;
 
