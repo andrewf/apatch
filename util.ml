@@ -30,7 +30,7 @@ let rec apply lhs rhs =
     match(lhs, rhs) with
     | ([], []) -> []
     (* copy up rhs del *)
-    | (_, (DelChars n) :: rxs) -> (DelChars n) :: (apply lhs rxs)
+    | (_, (DelChars n)::rxs) -> (DelChars n) :: (apply lhs rxs)
     (* copy down lhs ins *)
     | ( (InsChars s)::lxs, _) -> (InsChars s) :: (apply lxs rhs)
 
@@ -46,8 +46,8 @@ let rec apply lhs rhs =
         let slen = (String.length s) in
         let consumed = (min m slen) in
         (apply
-            (if m > consumed then (del (m-consumed))::lxs else lxs) (* carry over leftover deletion *)
-            (if slen > consumed then (ins (strdrop s consumed))::rxs else rxs) (* ditto leftover text *)
+            (if m > consumed then (del (m-consumed))::lxs else lxs)
+            (if slen > consumed then (ins (strdrop s consumed))::rxs else rxs)
         )
 
     (* lhs keep *)
