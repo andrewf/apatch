@@ -14,41 +14,6 @@ let str_of_patchSegment segment =
 let strdrop s n = String.sub s n ((String.length s) - n);;
 let strtake s n = String.sub s 0 n;;
 
-(* Reader -> option Reader *)
-let advanceReader r dist =
-    match r with
-        | KeepChars n ->
-            if dist < n then
-                Some (KeepChars (n - dist))
-            else if (dist = n) then
-                None
-            else
-                failwith "advanced KeepChars too far"
-        | DelChars n ->
-            if dist < n then
-                Some (DelChars (n - dist))
-            else if (dist = n) then
-                None
-            else
-                failwith "advanced DelChars too far"
-;;
-
-let advance segment dist = 
-    match segment with
-    | Reader r ->
-		(let maybe = (advanceReader r dist) in
-			match maybe with
-			| Some r -> Some (Reader r)
-			| None -> None)
-    | InsChars s ->
-        try
-            if (String.length s) = dist then
-                None
-            else
-                Some (InsChars (strdrop s dist))
-        with Invalid_argument msg -> failwith "advanced InsChars too far"
-;;
-
 (* how many chars this segment will read *)
 let readDim seg =
     match seg with
@@ -65,29 +30,6 @@ let writeDim seg =
 ;;
 
 
-(*(* apply a reading lhs to writing rhs. Returns the appropriate
-resulting segment (option), and the number of chars in both sides consumed *)
-let applyCompatible lhs, rhs =
-    let consumed = min (readDim lhs) (writeDim rhs) in
-        match (lhs, rhs) with
-        | (Reader (DelChars l))
-
-let rec apply lhs rhs =
-    let lx::lxs = lhs and rx::rxs = rhs in
-        match (lx, rx) with
-        (* copy up D from rhs *)
-        | (_, Reader (DelChars n)) -> []
-        (* Insert chars from lhs *)
-        | (InsChars s, _) -> lx :: (apply lxs rhs)
-        | (Reader lr, _) -> begin
-            match(lr, rx) with
-            | (DelChars m, Reader (KeepChars n)) -> []
-            | (DelChars m, InsChars s) -> []
-            | (KeepChars m, Reader (KeepChars n)) -> []
-            | (KeepChars m, InsChars s) -> []
-        end
-;;
-*)
 let rec apply lhs rhs =
     match(lhs, rhs) with
     | ([], []) -> []
