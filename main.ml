@@ -11,6 +11,8 @@ let str_of_patchSegment segment =
      | InsChars s ->
         s ;;
 
+let strdrop s n = String.sub s n ((String.length s) - n);;
+
 let advance segment dist = 
     match segment with
         | KeepChars n ->
@@ -25,10 +27,9 @@ let advance segment dist =
                 failwith "advanced DelChars too far"
         | InsChars s ->
             try
-                InsChars (String.sub s dist ((String.length s) - dist))
+                InsChars (strdrop s dist)
             with Invalid_argument msg -> failwith "advanced InsChars too far"
 ;;
-
 
 print_string ((str_of_patchSegment (advance (InsChars "the lazy dog jumped whatever") 5)) ^ "\n");;
 
