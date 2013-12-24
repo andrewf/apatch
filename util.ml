@@ -48,4 +48,17 @@ let advance segment dist =
         with Invalid_argument msg -> failwith "advanced InsChars too far"
 ;;
 
+(* how many chars this segment will read *)
+let readDim seg =
+    match seg with
+    | Reader (KeepChars n) -> n
+    | Reader (DelChars n) -> n
+    | InsChars _ -> 0
+;;
 
+let writeDim seg =
+    match seg with
+    | Reader (KeepChars n) -> n
+    | Reader (DelChars n) -> 0
+    | InsChars s -> String.length s
+;;
