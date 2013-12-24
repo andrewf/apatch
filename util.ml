@@ -9,11 +9,11 @@ let str_of_patchSegment segment =
 let str_of_patch p =
     match p with
     | px::pxs ->
-    "[" ^ (List.fold_left
-                (fun prev seg -> (prev ^ ", " ^ (str_of_patchSegment seg)))
+        (List.fold_left
+                (fun prev seg -> (prev ^ (str_of_patchSegment seg)))
                 (str_of_patchSegment px)
-                pxs) ^ "]"
-    | [] -> "[]"
+                pxs)
+    | [] -> ""
 ;;
     
 
