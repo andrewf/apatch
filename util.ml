@@ -62,3 +62,52 @@ let writeDim seg =
     | Reader (DelChars n) -> 0
     | InsChars s -> String.length s
 ;;
+
+
+(*(* apply a reading lhs to writing rhs. Returns the appropriate
+resulting segment (option), and the number of chars in both sides consumed *)
+let applyCompatible lhs, rhs =
+    let consumed = min (readDim lhs) (writeDim rhs) in
+        match (lhs, rhs) with
+        | (Reader (DelChars l))
+
+let rec apply lhs rhs =
+    let lx::lxs = lhs and rx::rxs = rhs in
+        match (lx, rx) with
+        (* copy up D from rhs *)
+        | (_, Reader (DelChars n)) -> []
+        (* Insert chars from lhs *)
+        | (InsChars s, _) -> lx :: (apply lxs rhs)
+        | (Reader lr, _) -> begin
+            match(lr, rx) with
+            | (DelChars m, Reader (KeepChars n)) -> []
+            | (DelChars m, InsChars s) -> []
+            | (KeepChars m, Reader (KeepChars n)) -> []
+            | (KeepChars m, InsChars s) -> []
+        end
+;;
+*)
+let rec apply lhs rhs =
+    match(lhs, rhs) with
+    | ([], []) -> []
+    (* copy up rhs del *)
+    | (_, (Reader (DelChars n)) :: rxs) -> (Reader (DelChars n)) :: (apply lhs rxs)
+    (* copy down lhs ins *)
+    | ( (InsChars s)::lxs, _) -> (InsChars s) :: (apply lxs rhs)
+    (* lhs del *)
+    | ( (Reader (DelChars m))::lxs, (Reader (KeepChars n))::rxs) ->
+        (Reader (DelChars (min m n))) :: (apply [] [])
+    | ( (Reader (DelChars m))::lxs, (InsChars s)::rxs) ->
+        (* ??? :: *) (apply [] [])
+    (* lhs keep *)
+    | ( (Reader (KeepChars m))::lxs, (Reader (KeepChars n))::rxs) ->
+        (Reader (KeepChars (min m n))) :: (apply [] [])
+    | ( (Reader (KeepChars m))::lxs, (InsChars s)::rxs) ->
+        (InsChars s) :: (apply [] [])
+    (* starved reader error *)
+    | ( (Reader _)::_, []) -> failwith "Starved reader"
+    (* dangling writer error *)
+    | ( [], (InsChars _)::_ ) -> failwith "Dangling insert"
+    | ( [], (Reader (KeepChars _))::_) -> failwith "Dangling Keeper"
+;;
+

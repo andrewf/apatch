@@ -4,3 +4,8 @@ test: segments.cmx util.cmx main.cmx
 %.cmx: %.ml
 	ocamlopt -c $<
 	ocamlc -c $<
+
+.PHONY: clean
+
+clean:
+	rm *.o *.cmx *.cmi *.cmo

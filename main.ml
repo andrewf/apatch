@@ -20,3 +20,4 @@ println (maybestr (advance (Reader (DelChars 14)) 14));;
 printf "4 %d; 0 %d\n" (readDim (Reader (DelChars 4))) (writeDim (Reader (DelChars 4)));;
 printf "4 %d; 4 %d\n" (readDim (Reader (KeepChars 4))) (writeDim (Reader (KeepChars 4)));;
 printf "0 %d; 4 %d\n" (readDim (InsChars "abcd")) (writeDim (InsChars "abcd"));;
+
