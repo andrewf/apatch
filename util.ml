@@ -6,6 +6,17 @@ let str_of_patchSegment segment =
     | DelChars n  -> "{D" ^ string_of_int n ^ "}"
     | InsChars s -> s ;;
 
+let str_of_patch p =
+    match p with
+    | px::pxs ->
+    "[" ^ (List.fold_left
+                (fun prev seg -> (prev ^ ", " ^ (str_of_patchSegment seg)))
+                (str_of_patchSegment px)
+                pxs) ^ "]"
+    | [] -> "[]"
+;;
+    
+
 
 let strdrop s n = String.sub s n ((String.length s) - n);;
 let strtake s n = String.sub s 0 n;;
