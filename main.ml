@@ -1,10 +1,4 @@
-type readerSegment = KeepChars of int
-                   | DelChars of int
-;;
-
-type patchSegment = Reader of readerSegment
-                  | InsChars of string
-;;
+open Segments;;
 
 let str_of_readerSegment r =
     match r with
@@ -16,18 +10,24 @@ let str_of_patchSegment segment =
     | Reader r -> str_of_readerSegment r
     | InsChars s -> s ;;
 
+
 let strdrop s n = String.sub s n ((String.length s) - n);;
 
+(* Reader -> option Reader *)
 let advanceReader r dist=
     match r with
         | KeepChars n ->
             if dist < n then
-                KeepChars (n - dist)
+                Some (KeepChars (n - dist))
+            elif (dest = n) then
+                None
             else
                 failwith "advanced KeepChars too far"
         | DelChars n ->
             if dist < n then
                 DelChars (n - dist)
+            elif (dest = n) then
+                None
             else
                 failwith "advanced DelChars too far"
 ;;
@@ -40,6 +40,9 @@ let advance segment dist =
             InsChars (strdrop s dist)
         with Invalid_argument msg -> failwith "advanced InsChars too far"
 ;;
+
+
+
 
 let println s = (print_string s; print_string "\n");;
 
