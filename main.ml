@@ -2,7 +2,7 @@ open Printf;;
 open Patch;;
 
 
-let println s = (print_string s; print_string "\n");;
+let println = print_endline;;
 
 println (str_of_patchSegment (KeepChars 34));;
 println (str_of_patchSegment (DelChars 34));;
