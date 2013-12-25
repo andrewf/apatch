@@ -81,6 +81,7 @@ let defrag newhead applied =
         newhead::applied
 ;;
 
+(* behold, the function *)
 let rec apply lhs rhs =
     match(lhs, rhs) with
     (* base case *)
