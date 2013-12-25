@@ -30,9 +30,9 @@ let testdata = [
     ([keep 5], [ins "wxyza"], [ins "wxyza"]);
     ([keep 5], [ins "efg"; keep 2], [ins "efg"; keep 2]);
     ([keep 5; del 2], [ins "abcdefg"], [ins "abcde"]);
-    (* repeated segments, frankly this is a bug *)
-    ([ins "abc"; keep 3], [ins "xyz"], [ins "abc"; ins "xyz"]);
-    ([del 4], [del 3; keep 4], [del 3; del 4]);
+    (* no repeated segments! *)
+    ([ins "abc"; keep 3; ins "def"], [ins "xyz"], [ins "abcxyzdef"]);
+    ([del 4], [del 3; keep 4; del 7], [del 3; del 4; del 7]);
     (* misc *)
     ([keep 4], [ins "ex"; del 2; keep 2], [ins "ex"; del 2; keep 2])
 ];;
