@@ -8,4 +8,4 @@ test: patch.cmx main.cmx
 .PHONY: clean
 
 clean:
-	rm -f *.o *.cmx *.cmi *.cmo
+	rm -f monoid *.o *.cmx *.cmi *.cmo
