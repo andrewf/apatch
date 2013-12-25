@@ -1,6 +1,5 @@
 open Printf;;
-open Segments;;
-open Util;;
+open Patch;;
 
 
 let println s = (print_string s; print_string "\n");;
@@ -50,4 +49,6 @@ let test_tuple t =
 ;;
 
 List.iter test_tuple testdata;;
+
+printf "%d cases tested.\n" (List.length testdata);;
 

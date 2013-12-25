@@ -1,6 +1,17 @@
-open Segments;;
 open Str;; (* for first/last_chars *)
 
+(* behold, the data structure *)
+type patchSegment = KeepChars of int
+                  | DelChars of int 
+                  | InsChars of string
+;;
+
+(* shortcuts *)
+let keep n = KeepChars n;;
+let del n = DelChars n;;
+let ins s = InsChars s;;
+
+(* for output *)
 let str_of_patchSegment segment =
     match segment with
     | KeepChars n -> "{K" ^ string_of_int n ^ "}"
