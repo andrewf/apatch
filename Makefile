@@ -1,5 +1,5 @@
 test: segments.cmx util.cmx main.cmx
-	ocamlopt -o monoid $^
+	ocamlopt -o monoid str.cmxa $^
 
 %.cmx: %.ml
 	ocamlopt -c $<
@@ -8,4 +8,4 @@ test: segments.cmx util.cmx main.cmx
 .PHONY: clean
 
 clean:
-	rm *.o *.cmx *.cmi *.cmo
+	rm -f *.o *.cmx *.cmi *.cmo

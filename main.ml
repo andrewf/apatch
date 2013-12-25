@@ -32,7 +32,7 @@ let testdata = [
     ([keep 5; del 2], [ins "abcdefg"], [ins "abcde"]);
     (* no repeated segments! *)
     ([ins "abc"; keep 3; ins "def"], [ins "xyz"], [ins "abcxyzdef"]);
-    ([del 4], [del 3; keep 4; del 7], [del 3; del 4; del 7]);
+    ([del 4], [del 3; keep 4; del 7], [del 14]);
     (* misc *)
     ([keep 4], [ins "ex"; del 2; keep 2], [ins "ex"; del 2; keep 2])
 ];;

@@ -1,4 +1,5 @@
 open Segments;;
+open Str;; (* for first/last_chars *)
 
 let str_of_patchSegment segment =
     match segment with
@@ -16,11 +17,6 @@ let str_of_patch p =
     | [] -> ""
 ;;
     
-
-
-let strdrop s n = String.sub s n ((String.length s) - n);;
-let strtake s n = String.sub s 0 n;;
-
 (* how many chars this segment will read *)
 let readDim seg =
     match seg with
@@ -56,7 +52,7 @@ let advance patch consumed =
     | (InsChars s)::pxs ->
         let slen = String.length s in begin
             if slen > consumed then
-                (ins (strdrop s consumed))::pxs
+                (ins (last_chars s (slen-consumed)))::pxs
             else if slen = consumed then
                 pxs
             else failwith "advanced ins segment too far"
@@ -105,7 +101,7 @@ let rec apply lhs rhs =
     | ( (KeepChars m)::lxs, (InsChars s)::rxs) ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
-        defrag (InsChars (strtake s consumed)) (apply (advance lhs consumed) (advance rhs consumed))
+        defrag (InsChars (Str.first_chars s consumed)) (apply (advance lhs consumed) (advance rhs consumed))
 
     (* starved reader error *)
     | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
