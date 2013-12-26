@@ -1,4 +1,4 @@
-test: patch.cmx main.cmx
+test: patch.cmx textformat.cmx main.cmx
 	ocamlopt -o monoid str.cmxa $^
 
 %.cmx: %.ml

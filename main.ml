@@ -1,7 +1,6 @@
 open Printf;;
 open Patch;;
 
-
 let println = print_endline;;
 
 println (str_of_patchSegment (KeepChars 34));;
@@ -48,7 +47,29 @@ let test_tuple t =
     with Failure s -> (printf "Test %s * %s blew up: %s.\n" (str_of_patch a) (str_of_patch b) s)
 ;;
 
+println "testing application";;
 List.iter test_tuple testdata;;
-
 printf "%d cases tested.\n" (List.length testdata);;
+
+let texttest = [
+    ("\\", [ins "\\"]);
+    ("\\%", [ins "\\%"]);
+    ("\\%[", [ins "%["]);
+    ("%[D23]", [del 23]);
+    ("%[K34]", [keep 34]);
+    ("freep %[K5]%[D3]zuu%[D4]", [ins "freep "; keep 5; del 3; ins "zuu"; del 4]);
+    ("abcd%[K3]\\%[xx%[D2]f", [ins "abcd"; keep 3; ins "%[xx"; del 2; ins "f"])
+];;
+
+println "testing reading text format";;
+List.iter (fun t -> let (data, expected) = t in try
+               let result = (Textformat.readString data) in
+                   if not (result = expected) then
+                       (printf "Test \"%s\" failed. \"%s\" != \"%s\".\n"
+                                data (str_of_patch result) (str_of_patch expected))
+           with Failure s -> (printf "Test \"%s\" blew up: %s.\n" data s))
+           texttest;;
+printf "%d cases tested.\n" (List.length texttest);;
+
+
 

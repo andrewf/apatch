@@ -1,7 +1,7 @@
 open Str;; (* for first/last_chars *)
 
 (* behold, the data structure *)
-type patchSegment = KeepChars of int
+type segment = KeepChars of int
                   | DelChars of int 
                   | InsChars of string
 ;;
@@ -77,6 +77,8 @@ let defrag newhead applied =
         (InsChars (s^t))::rest     (* this could become a performance problem *)
     | (DelChars n, (DelChars m)::rest) ->
         (DelChars (n+m))::rest
+    | (KeepChars n, (KeepChars m)::rest) ->
+        (KeepChars (n+m))::rest
     | (_, _) ->
         newhead::applied
 ;;
