@@ -1,6 +1,8 @@
 open Printf;;
 open Patch;;
 
+module Tf = Textformat;;
+
 let println = print_endline;;
 
 println (str_of_patchSegment (KeepChars 34));;
@@ -58,15 +60,20 @@ let texttest = [
     ("%[D23]", [del 23]);
     ("%[K34]", [keep 34]);
     ("freep %[K5]%[D3]zuu%[D4]", [ins "freep "; keep 5; del 3; ins "zuu"; del 4]);
-    ("abcd%[K3]\\%[xx%[D2]f", [ins "abcde"; keep 3; ins "%[xx"; del 2; ins "f"])
+    ("abcd%[K3]\\%[xx%[D2]f", [ins "abcd"; keep 3; ins "%[xx"; del 2; ins "f"])
 ];;
 
 println "testing reading text format";;
 List.iter (fun t -> let (data, expected) = t in try
-               let result = (Textformat.readString data) in
+               let result = (Textformat.readString data) in begin
                    if not (result = expected) then
                        (printf "Test \"%s\" failed. %s != %s.\n"
-                                data (str_of_patch result) (str_of_patch expected))
+                                data (str_of_patch result) (str_of_patch expected));
+                   let reserialized = (Tf.writeString result) in
+                       if not (reserialized = data) then
+                           (printf "Re-serialized doesn't match. \"%s\" != \"%s\".\n"
+                                    reserialized data);
+                end
            with Failure s -> (printf "Test \"%s\" blew up: %s.\n" data s))
            texttest;;
 printf "%d cases tested.\n" (List.length texttest);;

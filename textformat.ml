@@ -110,4 +110,30 @@ let readString str =
     end
 ;;
 
+let escape s =
+    let mustEscape = (string_of_char sigil) ^ (string_of_char opener) in
+    let r = regexp_string mustEscape in
+    global_replace r ((string_of_char escapeChar) ^ mustEscape) s;;
 
+let string_of_segment seg =
+    match seg with
+    | Patch.InsChars s -> escape s
+    | Patch.KeepChars n ->
+        ((string_of_char sigil) ^
+         (string_of_char opener) ^
+         (string_of_char keepChar) ^
+         (string_of_int n) ^
+         (string_of_char closer))
+    | Patch.DelChars n ->
+        ((string_of_char sigil) ^
+         (string_of_char opener) ^
+         (string_of_char delChar) ^
+         (string_of_int n) ^
+         (string_of_char closer))
+;;
+
+let writeString patch =
+    (List.fold_left
+        (fun prev seg -> (prev ^ (string_of_segment seg)))
+        ""
+        patch)
