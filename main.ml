@@ -39,7 +39,7 @@ let test_tuple t =
     let (a, b, c) = t in try
         let result = (apply a b) in
         if not (result = c) then
-            (printf "Test \"%s\" * \"%s\" failed. \"%s\" != \"%s\".\n"
+            (printf "Test %s * %s failed. %s != %s.\n"
                 (str_of_patch a)
                 (str_of_patch b)
                 (str_of_patch result)
@@ -58,14 +58,14 @@ let texttest = [
     ("%[D23]", [del 23]);
     ("%[K34]", [keep 34]);
     ("freep %[K5]%[D3]zuu%[D4]", [ins "freep "; keep 5; del 3; ins "zuu"; del 4]);
-    ("abcd%[K3]\\%[xx%[D2]f", [ins "abcd"; keep 3; ins "%[xx"; del 2; ins "f"])
+    ("abcd%[K3]\\%[xx%[D2]f", [ins "abcde"; keep 3; ins "%[xx"; del 2; ins "f"])
 ];;
 
 println "testing reading text format";;
 List.iter (fun t -> let (data, expected) = t in try
                let result = (Textformat.readString data) in
                    if not (result = expected) then
-                       (printf "Test \"%s\" failed. \"%s\" != \"%s\".\n"
+                       (printf "Test \"%s\" failed. %s != %s.\n"
                                 data (str_of_patch result) (str_of_patch expected))
            with Failure s -> (printf "Test \"%s\" blew up: %s.\n" data s))
            texttest;;

@@ -11,21 +11,18 @@ let keep n = KeepChars n;;
 let del n = DelChars n;;
 let ins s = InsChars s;;
 
-(* for output *)
+(* for debug output *)
 let str_of_patchSegment segment =
     match segment with
-    | KeepChars n -> "{K" ^ string_of_int n ^ "}"
-    | DelChars n  -> "{D" ^ string_of_int n ^ "}"
-    | InsChars s -> s ;;
+    | KeepChars n -> "K" ^ string_of_int n 
+    | DelChars n  -> "D" ^ string_of_int n
+    | InsChars s -> "I\"" ^ s ^ "\"" ;;
 
 let str_of_patch p =
-    match p with
-    | px::pxs ->
-        (List.fold_left
-                (fun prev seg -> (prev ^ (str_of_patchSegment seg)))
-                (str_of_patchSegment px)
-                pxs)
-    | [] -> ""
+    ("[" ^ (List.fold_left
+            (fun prev seg -> (prev ^ (str_of_patchSegment seg) ^ ", "))
+            ""
+            p) ^ "]")
 ;;
     
 (* how many chars this segment will read *)
