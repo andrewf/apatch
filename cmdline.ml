@@ -6,8 +6,7 @@ open Printf;;
 (* we can assume argv[0] exists *)
 let usage = sprintf "Usage: %s patchfile" (Array.get Sys.argv 0);;
 
-printf "%d\n" (Array.length Sys.argv);;
-Array.iter (fun arg -> printf "%s\n" arg) Sys.argv;;
+(* Array.iter (fun arg -> printf "%s\n" arg) Sys.argv;; *)
 
 if not ((Array.length Sys.argv) = 2) then begin
     fprintf stderr "%s\n" usage;

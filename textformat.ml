@@ -7,6 +7,10 @@ let closer = ']';;
 let keepChar = 'K';;
 let delChar  = 'D';;
 
+(* the strings here are for storing characters that we know will
+eventually wind up in an InsChars, but we want to collect the
+whole thing before constructing it. I guess I could have just made
+them `of InsChars', but whatever *)
 type readerState = Inserting of string (* start state is `Inserting ""` *)
                  (* these two are for handling escape sequences *)
                  | EscapeFound of string
@@ -37,7 +41,7 @@ let advanceReader state c =
         match c with
         | z when z=sigil -> transition (EscapedSigilFound s)
         (* false alarm, dump everything matched so far to the insert seg *)
-        | _ -> transition (Inserting (s ^ (string_of_char escapeChar)))
+        | _ -> transition (Inserting (s ^ (string_of_char escapeChar) ^ (string_of_char c)))
     end
     | EscapedSigilFound s -> begin
         match c with
@@ -47,7 +51,7 @@ let advanceReader state c =
         | _ ->
             transition (Inserting (s ^ (string_of_char escapeChar)
                                 ^ (string_of_char sigil)
-                                ^ (string_of_char opener)))
+                                ^ (string_of_char c)))
     end
     | ExpectingOpener s -> begin
         (* sigil found, maybe we'll see opening bracket *)

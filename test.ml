@@ -54,9 +54,13 @@ List.iter test_tuple testdata;;
 printf "%d cases tested.\n" (List.length testdata);;
 
 let texttest = [
-    ("\\", [ins "\\"]);
-    ("\\%", [ins "\\%"]);
-    ("\\%[", [ins "%["]);
+    (* pretend / is backslash in these comments, because OCaml is annoying *)
+    ("\\", [ins "\\"]);     (* "/" -> ins "/" *)
+    ("\\z", [ins "\\z"]);   (* "/z" -> ins "/z" *)
+    ("\\\\", [ins "\\\\"]); (* "//" -> ins "//" *)
+    ("\\%", [ins "\\%"]);   (* "/%" -> ins "/%" *)
+    ("\\%[", [ins "%["]);   (* "/%[" -> ins "%[" *)
+    ("\\%\\\\", [ins "\\%\\\\"]); (* "/%//" -> "/%//" *)
     ("%[D23]", [del 23]);
     ("%[K34]", [keep 34]);
     ("freep %[K5]%[D3]zuu%[D4]", [ins "freep "; keep 5; del 3; ins "zuu"; del 4]);
@@ -66,12 +70,13 @@ let texttest = [
 println "testing reading text format";;
 List.iter (fun t -> let (data, expected) = t in try
                let result = (Textformat.readString data) in begin
+                   printf "Testing \"%s\"\n" data;
                    if not (result = expected) then
-                       (printf "Test \"%s\" failed. %s != %s.\n"
+                       (printf "  Test \"%s\" failed. %s != %s.\n"
                                 data (str_of_patch result) (str_of_patch expected));
                    let reserialized = (Tf.writeString result) in
                        if not (reserialized = data) then
-                           (printf "Re-serialized doesn't match. \"%s\" != \"%s\".\n"
+                           (printf "  Re-serialized doesn't match. \"%s\" != \"%s\".\n"
                                     reserialized data);
                 end
            with Failure s -> (printf "Test \"%s\" blew up: %s.\n" data s))
