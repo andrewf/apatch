@@ -95,20 +95,40 @@ let rec reverse l =
     in helper l []
 ;;
 
+class patchBuilder = object(self)
+    val mutable state = Inserting ""
+    val mutable result = ([] : Patch.segment list)
+    method maybeAddSeg seg =
+        match seg with
+        | Some s -> (result <- s::result)
+        | None -> ()
+    method addChar c =
+        (* this algo builds result in reverse order *)
+        let newstate, yielded = advanceReader state c in begin
+            state <- newstate;
+            self#maybeAddSeg yielded
+        end
+    method finish =
+        self#maybeAddSeg (finishReading state)
+    method getResult = reverse result (* actually, unreverse *)
+end
+
 let readString str =
-    let state = ref (Inserting "") in
-    let result = ref [] in
-    (* This builds list in reverse order! *)
-    let maybeAdd seg = (match seg with Some s -> (result := s::(!result)) | None -> () ) in begin
-        String.iter (fun c -> 
-            let newstate, yielded = advanceReader !state c in begin
-                state := newstate;
-                maybeAdd yielded
-            end) str;
-        maybeAdd (finishReading !state);
-        reverse !result
+    let builder = new patchBuilder in begin
+        String.iter (fun c -> builder#addChar c) str;
+        builder#finish;
+        builder#getResult
     end
 ;;
+
+let readFile chan = begin
+    let builder = new patchBuilder in (try
+        while true do
+            builder#addChar (input_char chan)
+        done
+    with End_of_file -> (builder#finish));
+    builder#getResult
+end ;;
 
 let escape s =
     let mustEscape = (string_of_char sigil) ^ (string_of_char opener) in
