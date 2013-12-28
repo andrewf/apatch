@@ -4,6 +4,9 @@ test: patch.cmx textformat.cmx test.cmx
 apply: patch.cmx textformat.cmx cmdline.cmx
 	ocamlopt -o apply str.cmxa $^
 
+fuzz: patch.cmx fuzz.cmx
+	ocamlopt -o fuzztest str.cmxa $^
+
 %.cmx: %.ml
 	ocamlopt -c $<
 	ocamlc -c $<
