@@ -2,8 +2,8 @@ open Str;; (* for first/last_chars *)
 
 (* behold, the data structure *)
 type segment = KeepChars of int
-                  | DelChars of int 
-                  | InsChars of string
+             | DelChars  of int 
+             | InsChars  of string
 ;;
 
 (* shortcuts *)
@@ -118,7 +118,7 @@ let rec apply lhs rhs =
     | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
     | ( (DelChars _)::_, []) -> failwith "Starved deleter"
     (* dangling writer error *)
-    | ( [], (InsChars _)::_ ) -> failwith "Dangling insert"
+    | ( [], (InsChars _)::_ ) -> failwith "Dangling insert in source"
     | ( [], (KeepChars _)::_) -> failwith "Dangling Keeper in source"
 ;;
 

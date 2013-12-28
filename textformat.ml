@@ -30,53 +30,49 @@ let advanceReader state c =
     let yield s = (Inserting "", Some s) in
     let transition st = (st, None) in
     match state with
-    | Inserting s -> begin
-        match c with
-        | z when z=escapeChar -> transition (EscapeFound s)
-        | z when z=sigil -> transition (ExpectingOpener s)
-        | _ -> transition (Inserting (s ^ (string_of_char c)))
-    end
-    | EscapeFound s -> begin
+    | Inserting s ->
+        if c = escapeChar then
+            transition (EscapeFound s)
+        else if c = sigil then
+            transition (ExpectingOpener s)
+        else
+            transition (Inserting (s ^ (string_of_char c)))
+    | EscapeFound s ->
         (* backslash found, expecting sigil, maybe *)
-        match c with
-        | z when z=sigil -> transition (EscapedSigilFound s)
-        (* false alarm, dump everything matched so far to the insert seg *)
-        | _ -> transition (Inserting (s ^ (string_of_char escapeChar) ^ (string_of_char c)))
-    end
-    | EscapedSigilFound s -> begin
-        match c with
-        (* found whole escape sequence, put escaped chars in insert stream *)
-        | z when z=opener ->
+        if c = sigil then
+            transition (EscapedSigilFound s)
+        else
+            (* false alarm, dump everything matched so far to the insert seg *)
+            transition (Inserting (s ^ (string_of_char escapeChar) ^ (string_of_char c)))
+    | EscapedSigilFound s ->
+        if c = opener then
+            (* found whole escape sequence, put escaped chars in insert stream *)
             transition (Inserting (s ^ (string_of_char sigil) ^ (string_of_char opener)))
-        | _ ->
+        else
             transition (Inserting (s ^ (string_of_char escapeChar)
                                 ^ (string_of_char sigil)
                                 ^ (string_of_char c)))
-    end
-    | ExpectingOpener s -> begin
+    | ExpectingOpener s ->
         (* sigil found, maybe we'll see opening bracket *)
-        match c with
-        | z when z=opener -> (ExpectingType, if not (s="") then Some (Patch.InsChars s) else None)
-        (* false alarm, dump matched char *)
-        | _ -> transition (Inserting (s ^ (string_of_char sigil)))
-    end
-    | ExpectingType -> begin
-        match c with
-        | z when z=keepChar ->
+        if c = opener then
+            (ExpectingType, if not (s="") then Some (Patch.InsChars s) else None)
+        else
+            (* false alarm, dump matched char *)
+            transition (Inserting (s ^ (string_of_char sigil)))
+    | ExpectingType ->
+        if c=keepChar then
             transition (ReadingN ("", (fun n -> Patch.KeepChars n)))
-        | z when z=delChar ->
+        else if c = delChar then
             transition (ReadingN ("", (fun n -> Patch.DelChars n)))
-        | _ -> failwith "oh noes, invalid reader form"
-    end
-    | ReadingN (s, ctor) -> begin
-        match c with
-        | digit when is_digit(digit) ->
-            transition (ReadingN ((s^(string_of_char digit)), ctor))
-        | z when z=closer ->
+        else
+            failwith "invalid reader form"
+    | ReadingN (s, ctor) ->
+        if is_digit c then
+            transition (ReadingN ((s^(string_of_char c)), ctor))
+        else if c = closer then
             yield (ctor (int_of_string s))
-        | _ ->
+        else
             failwith "non-digit char in reader form"
-    end
 ;;
 
 let finishReading state =
@@ -136,7 +132,8 @@ end ;;
 
 let escape s =
     let mustEscape = (string_of_char sigil) ^ (string_of_char opener) in
-    let r = regexp_string mustEscape in
+    (* use of regexp_string avoids syntax difficulties in matching '[' *)
+    let r = regexp_string mustEscape in  
     global_replace r ((string_of_char escapeChar) ^ mustEscape) s;;
 
 let string_of_segment seg =
