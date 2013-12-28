@@ -8,13 +8,26 @@ let usage = sprintf "Usage: %s patchfile" (Array.get Sys.argv 0);;
 
 (* Array.iter (fun arg -> printf "%s\n" arg) Sys.argv;; *)
 
+let eprintf = fprintf stderr;;
+
 if not ((Array.length Sys.argv) = 2) then begin
-    fprintf stderr "%s\n" usage;
+    eprintf "%s\n" usage;
     exit 1
 end
 
 let patchfile = open_in (Array.get Sys.argv 1);;
 
 let patch = Textformat.readFile patchfile;;
+let source = Textformat.readFile stdin;;
 
-print_string (Patch.str_of_patch patch);;
+(* more debug output, geez *)
+eprintf "patch (lhs): %s\n" (Patch.str_of_patch patch);;
+eprintf "source (rhs): %s\n" (Patch.str_of_patch source);;
+
+
+try
+    print_string (Textformat.writeString (Patch.apply patch source))
+with Failure s -> begin
+    eprintf "Failed to apply patches: %s\n" s;
+    exit 1
+end;;
