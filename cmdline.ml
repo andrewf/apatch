@@ -21,8 +21,8 @@ let patch = Textformat.readFile patchfile;;
 let source = Textformat.readFile stdin;;
 
 (* more debug output, geez *)
-eprintf "patch (lhs): %s\n" (Patch.str_of_patch patch);;
-eprintf "source (rhs): %s\n" (Patch.str_of_patch source);;
+(* eprintf "patch (lhs): %s\n" (Patch.str_of_patch patch);;
+eprintf "source (rhs): %s\n" (Patch.str_of_patch source);; *)
 
 
 try
