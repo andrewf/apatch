@@ -80,7 +80,7 @@ let defrag newhead applied =
         newhead::applied
 ;;
 
-(* behold, the function *)
+(* behold, the function. lhs is the patch, rhs the source *)
 let rec apply lhs rhs =
     match(lhs, rhs) with
     (* base case *)
@@ -97,7 +97,8 @@ let rec apply lhs rhs =
     (* lhs del *)
     | ( (DelChars m)::lxs, (KeepChars n)::rxs) ->
         let consumed = (min m n) in
-        defrag (DelChars consumed) (apply (advance lhs consumed) (advance rhs consumed))
+        defrag (DelChars consumed)
+               (apply (advance lhs consumed) (advance rhs consumed))
 
     | ( (DelChars m)::lxs, (InsChars s)::rxs) ->
         let slen = (String.length s) in
@@ -107,12 +108,15 @@ let rec apply lhs rhs =
     (* lhs keep *)
     | ( (KeepChars m)::lxs, (KeepChars n)::rxs) ->
         let consumed = (min m n) in
-        (KeepChars (min m n)) :: (apply (advance lhs consumed) (advance rhs consumed))
+        (* this defrag only matters for patches that start off with repeated segments *)
+        defrag (KeepChars (min m n))   
+               (apply (advance lhs consumed) (advance rhs consumed))
 
     | ( (KeepChars m)::lxs, (InsChars s)::rxs) ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
-        defrag (InsChars (Str.first_chars s consumed)) (apply (advance lhs consumed) (advance rhs consumed))
+        defrag (InsChars (Str.first_chars s consumed))
+               (apply (advance lhs consumed) (advance rhs consumed))
 
     (* starved reader error *)
     | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
