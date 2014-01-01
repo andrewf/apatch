@@ -3,3 +3,6 @@
 *.cmo
 *.o
 *.sw[op]
+test
+apatch
+fuzztest

@@ -1,7 +1,7 @@
 test: patch.cmx textformat.cmx test.cmx
 	ocamlopt -o $@ str.cmxa $^
 
-apply: patch.cmx textformat.cmx cmdline.cmx
+apatch: patch.cmx textformat.cmx cmdline.cmx
 	ocamlopt -o $@ str.cmxa $^
 
 fuzztest: patch.cmx fuzz.cmx
@@ -13,7 +13,7 @@ fuzztest: patch.cmx fuzz.cmx
 
 .PHONY: clean all
 
-all: test apply fuzztest
+all: test apatch fuzztest
 
 clean:
 	rm -f test apply *.o *.cmx *.cmi *.cmo
