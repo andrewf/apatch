@@ -83,5 +83,36 @@ List.iter (fun t -> let (data, expected) = t in try
            texttest;;
 printf "%d cases tested.\n" (List.length texttest);;
 
+let commtest = [
+    (* (patch, base), (base', patch') *)
+    (* simple, non-overlapping cases *)
+    ( ([], [del 4]), ([del 4], [keep 4]) );
+    ( ([ins "cat"], []), ([keep 3], [ins "cat"]) );
+    ( ([keep 3], [keep 3]), ([keep 3], [keep 3]) );
+    ( ([keep 3], [ins "gob"]), ([ins "gob"], []) );
+    ( ([del 3], [ins "abc"]), ([], []) );
+    ( ([del 3], [keep 3]), ([], [del 3]) );
+    (* original cases *)
+    ( ([keep 7; ins "mno"; keep 3], [keep 2; ins "xyz"; keep 5]), ([keep 2; ins "xyz"; keep 8], [keep 4; ins "mno"; keep 3]) );
+    ( ([keep 2; ins "AB"; keep 2], [keep 1; ins "xy"; keep 1]), ([keep 1; ins "x"; keep 2; ins "y"; keep 1], [keep 1; ins "AB"; keep 1]) );
+    (* OT/patch-theory-ish test cases *)
+    ( ([keep 2; del 1; ins "b"], [keep 2; del 2; ins "t"]), ([keep 2; del 2; keep 1], [keep 4; ins "b"]) )
+];;
+
+println "testing commutation";;
+List.iter (fun ((patch, base), (expected_comm_base, expected_comm_patch)) -> try
+               let (comm_base, comm_patch) = commute patch base in
+                   if not ((comm_base = expected_comm_base) && (comm_patch = expected_comm_patch)) then
+                       printf "Test %s * %s failed:\n  comm_base: %s, expected %s\n  comm_patch: %s, expected %s\n"
+                              (str_of_patch patch)
+                              (str_of_patch base)
+                              (str_of_patch comm_base)
+                              (str_of_patch expected_comm_base)
+                              (str_of_patch comm_patch)
+                              (str_of_patch expected_comm_patch)
+           with Failure s -> (printf "Test %s * %s blew up: %s.\n" (str_of_patch patch) (str_of_patch base) s))
+           commtest;;
+
+printf "%d cases tested.\n" (List.length commtest);;
 
 
