@@ -109,5 +109,34 @@ for i = 1 to iterations do
 done ;;
 
 if !program_exit == 0 then
-    printf "All tests succeeded.\n"
+    printf "All association tests succeeded.\n"
 ;;
+
+let comm_iterations = 1;;
+let max_dimension = 10;;
+
+for i = 1 to comm_iterations do
+    (* generate two compatible patches *)
+    let patch_write, base_write, base_read =
+        rand_1upto max_dimension, rand_1upto max_dimension, rand_1upto max_dimension in
+    let patch, ch = random_patch starting_char patch_write base_write in
+    let base, _ = random_patch ch base_write base_read in
+    printf "test %s * %s\n" (str_of_patch patch) (str_of_patch base);
+    try
+        let comm_base, comm_patch = commute patch base in
+        let forwards = apply patch base in
+        let commuted = apply comm_base comm_patch in
+        if not (forwards = commuted) then begin
+            printf "commutation test %s * %s failed: fwd %s != rev %s\n"
+                   (str_of_patch patch)
+                   (str_of_patch base)
+                   (str_of_patch forwards)
+                   (str_of_patch commuted);
+            program_exit := 1
+        end
+    with Failure s -> begin
+        printf "woops, it didn't work for test %s * %s: %s\n"
+               (str_of_patch patch) (str_of_patch base) s;
+        program_exit := 1
+    end
+done ;;

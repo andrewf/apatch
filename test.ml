@@ -96,7 +96,9 @@ let commtest = [
     ( ([keep 7; ins "mno"; keep 3], [keep 2; ins "xyz"; keep 5]), ([keep 2; ins "xyz"; keep 8], [keep 4; ins "mno"; keep 3]) );
     ( ([keep 2; ins "AB"; keep 2], [keep 1; ins "xy"; keep 1]), ([keep 1; ins "x"; keep 2; ins "y"; keep 1], [keep 1; ins "AB"; keep 1]) );
     (* OT/patch-theory-ish test cases *)
-    ( ([keep 2; del 1; ins "b"], [keep 2; del 2; ins "t"]), ([keep 2; del 2; keep 1], [keep 4; ins "b"]) )
+    ( ([keep 2; del 1; ins "b"], [keep 2; del 2; ins "t"]), ([keep 2; del 2; keep 1], [keep 4; ins "b"]) );
+    (* fuzz cases *)
+    ( ([keep 2; keep 3; del 3], [keep 4; ins "z"; ins "y"; ins "x"; keep 1; del 4]), ([keep 4; ins "z"; del 4], [keep 4; del 1; keep 4]) )
 ];;
 
 println "testing commutation";;
