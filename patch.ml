@@ -80,43 +80,65 @@ let defrag newhead applied =
         newhead::applied
 ;;
 
-(* behold, the function. lhs is the patch, rhs the source *)
-let rec apply lhs rhs =
-    match(lhs, rhs) with
+type patchAction = DoNothing
+                 | Advance of int
+;;
+
+(* behold, the function. patch is the patch, base the source *)
+let rec apply patch base =
+    let yield seg patch_action base_action = begin
+        let do_action action p =
+            match action with
+            | DoNothing -> p
+            | Advance n -> advance p n in
+        let newTail = apply (do_action patch_action patch) (do_action base_action base) in
+        match seg with
+        | None -> newTail
+        | Some seg -> defrag seg newTail end in
+    match(patch, base) with
     (* base case *)
     | ([], []) -> []
 
-    (* copy up rhs del *)
+    (* copy up base del *)
     | (_, (DelChars n)::rxs) ->
-        defrag (DelChars n) (apply lhs rxs)
+        yield (Some (DelChars n))
+              DoNothing
+              (Advance n)
 
-    (* copy down lhs ins *)
+    (* copy down patch ins *)
     | ( (InsChars s)::lxs, _) ->
-        defrag (InsChars s) (apply lxs rhs)
+        yield (Some (InsChars s))
+              (Advance (String.length s))
+              DoNothing
 
-    (* lhs del *)
+    (* patch del *)
     | ( (DelChars m)::lxs, (KeepChars n)::rxs) ->
         let consumed = (min m n) in
-        defrag (DelChars consumed)
-               (apply (advance lhs consumed) (advance rhs consumed))
+        yield (Some (DelChars consumed))
+              (Advance consumed)
+              (Advance consumed)
 
     | ( (DelChars m)::lxs, (InsChars s)::rxs) ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
-        apply (advance lhs consumed) (advance rhs consumed)
+        yield None
+              (Advance consumed)
+              (Advance consumed)
         
-    (* lhs keep *)
+    (* patch keep *)
     | ( (KeepChars m)::lxs, (KeepChars n)::rxs) ->
         let consumed = (min m n) in
         (* this defrag only matters for patches that start off with repeated segments *)
-        defrag (KeepChars (min m n))   
-               (apply (advance lhs consumed) (advance rhs consumed))
+        yield (Some (KeepChars consumed))
+              (Advance consumed)
+              (Advance consumed)
 
     | ( (KeepChars m)::lxs, (InsChars s)::rxs) ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
-        defrag (InsChars (Str.first_chars s consumed))
-               (apply (advance lhs consumed) (advance rhs consumed))
+        yield (Some (InsChars (Str.first_chars s consumed)))
+              (Advance consumed)
+              (Advance consumed)
 
     (* starved reader error *)
     | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
