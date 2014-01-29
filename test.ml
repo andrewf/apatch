@@ -101,20 +101,29 @@ let commtest = [
     (* OT/patch-theory-ish test cases *)
     ( ([keep 2; del 1; ins "b"], [keep 2; del 2; ins "t"]), ([keep 2; del 2; keep 1], [keep 4; ins "b"]) );
     (* fuzz cases *)
-    ( ([keep 2; keep 3; del 3], [keep 4; ins "z"; ins "y"; ins "x"; keep 1; del 4]), ([keep 4; ins "z"; del 4], [keep 4; del 1; keep 4]) )
+    ( ([keep 2; keep 3; del 3], [keep 4; ins "z"; ins "y"; ins "x"; keep 1; del 4]), ([keep 4; del 4; ins "z"], [keep 4; del 1; keep 4]) )
 ];;
 
 println "testing commutation";;
 List.iter (fun ((patch, base), (expected_comm_base, expected_comm_patch)) -> try
                let (comm_base, comm_patch) = commute patch base in
-                   if not ((comm_base = expected_comm_base) && (comm_patch = expected_comm_patch)) then
+               let fwd = (apply patch base) in
+               let rev = (apply comm_base comm_patch) in begin
+                   (if not ((comm_base = expected_comm_base) && (comm_patch = expected_comm_patch)) then
                        printf "Test %s * %s failed:\n  comm_base: %s, expected %s\n  comm_patch: %s, expected %s\n"
                               (str_of_patch patch)
                               (str_of_patch base)
                               (str_of_patch comm_base)
                               (str_of_patch expected_comm_base)
                               (str_of_patch comm_patch)
-                              (str_of_patch expected_comm_patch)
+                              (str_of_patch expected_comm_patch));
+                   if not (fwd = rev) then
+                       printf "Test %s * %s failed: fwd %s != rev %s"
+                              (str_of_patch patch)
+                              (str_of_patch base)
+                              (str_of_patch fwd)
+                              (str_of_patch rev)
+               end
            with Failure s -> (printf "Test %s * %s blew up: %s.\n" (str_of_patch patch) (str_of_patch base) s))
            commtest;;
 

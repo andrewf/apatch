@@ -162,7 +162,7 @@ let rec apply patch base =
 
 (* patch -> base -> (commuted base, commuted patch) *)
 let rec commute patch base =
-    let maybedefrag maybeseg tail = match maybeseg with None -> tail | Some seg -> defrag seg tail in
+    let maybedefrag maybeseg tail = match maybeseg with None -> tail | Some seg -> normal_defrag seg tail in
     let yield (new_comm_base_seg, new_patch_base_seg) (patch, base) = begin
         let (comm_base_tail, comm_patch_tail) = commute patch base in
         ( maybedefrag new_comm_base_seg comm_base_tail, maybedefrag new_patch_base_seg comm_patch_tail )
