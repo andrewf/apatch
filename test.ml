@@ -33,8 +33,11 @@ let testdata = [
     (* no repeated segments! *)
     ([ins "abc"; keep 3; ins "def"], [ins "xyz"], [ins "abcxyzdef"]);
     ([del 4], [del 3; keep 4; del 7], [del 14]);
+    (* make sure ins/del sequences are normalized *)
+    ([ins "abc"; del 3; ins "def"], [keep 3], [del 3; ins "abcdef"]);
+    ([ins "abc"; del 3; ins "def"; del 3; ins "ghi"], [keep 6], [del 6; ins "abcdefghi"]);
     (* misc *)
-    ([keep 4], [ins "ex"; del 2; keep 2], [ins "ex"; del 2; keep 2])
+    ([keep 4], [ins "ex"; del 2; keep 2], [del 2; ins "ex"; keep 2])
 ];;
 
 let test_tuple t =

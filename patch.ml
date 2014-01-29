@@ -80,6 +80,18 @@ let defrag newhead applied =
         newhead::applied
 ;;
 
+(* defrag, but make sure del is in front of ins where possible. Basically, put
+   InsChars behind DelChars *)
+let normal_defrag newhead applied =
+    match newhead, applied with
+    | (InsChars s), (DelChars n)::(InsChars z)::tail ->
+        (DelChars n)::(InsChars (s ^ z))::tail
+    | (InsChars s), (DelChars n)::tail ->
+        (DelChars n)::(InsChars s)::tail
+    | _ ->
+        defrag newhead applied
+;;
+
 type patchAction = DoNothing
                  | Advance of int
 ;;
@@ -94,7 +106,7 @@ let rec apply patch base =
         let newTail = apply (do_action patch_action patch) (do_action base_action base) in
         match seg with
         | None -> newTail
-        | Some seg -> defrag seg newTail end in
+        | Some seg -> normal_defrag seg newTail end in
     match(patch, base) with
     (* base case *)
     | ([], []) -> []
