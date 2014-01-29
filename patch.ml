@@ -96,17 +96,22 @@ type patchAction = DoNothing
                  | Advance of int
 ;;
 
-(* behold, the function. patch is the patch, base the source *)
-let rec apply patch base =
-    let yield seg patch_action base_action = begin
+(* returns a function you can use as yield (segment option) patchAction patchAction *)
+let yield_with patch base make_rest=
+    fun seg patch_action base_action -> begin
         let do_action action p =
             match action with
             | DoNothing -> p
             | Advance n -> advance p n in
-        let newTail = apply (do_action patch_action patch) (do_action base_action base) in
+        let newTail = make_rest (do_action patch_action patch) (do_action base_action base) in
         match seg with
         | None -> newTail
-        | Some seg -> normal_defrag seg newTail end in
+        | Some seg -> normal_defrag seg newTail end
+;;
+
+(* behold, the function. patch is the patch, base the source *)
+let rec apply patch base =
+    let yield = yield_with patch base apply in
     match(patch, base) with
     (* base case *)
     | ([], []) -> []
@@ -204,4 +209,33 @@ let rec commute patch base =
     (* dangling writer error *)
     | ( [], (InsChars _)::_ ) -> failwith "Dangling insert in source"
     | ( [], (KeepChars _)::_) -> failwith "Dangling Keeper in source"
+;;
+
+
+(* invert patch with respect to base. That is, the inverse of D will
+   insert what was in the base there, if it was chars. This will fail for D*K columns,
+   because we don't know how to invert those *)
+let rec invert patch base =
+    let yield = yield_with patch base invert in
+    match patch, base with
+    | [], [] -> []
+    (* base del is wholly irrelevant *)
+    | _, (DelChars n)::_ ->
+        yield None DoNothing (Advance n)
+    | (InsChars s)::_, _ ->
+        let len = String.length s in
+        yield (Some (DelChars len)) (Advance len) DoNothing
+    | (DelChars n)::_, (KeepChars m)::_ ->
+        failwith "can't invert D*K"
+    | (DelChars n)::_, (InsChars s)::_ ->
+        let len = String.length s in
+        let m = min n len in
+        yield (Some (InsChars (Str.first_chars s m))) (Advance m) (Advance m)
+    | (KeepChars n)::_, _::_ -> (* base must have at least one element for keep to be valid *)
+        yield (Some (KeepChars n)) (Advance n) (Advance n)
+    (* starvation/dangling errors *)
+    | (KeepChars _)::_, [] -> failwith "Starved keeper while inverting"
+    | (DelChars _)::_, [] -> failwith "Starved deleter while inverting"
+    | [], (InsChars _)::_  -> failwith "Dangling insert in base while inverting"
+    | [], (KeepChars _)::_ -> failwith "Dangling Keeper in base while inverting"
 ;;

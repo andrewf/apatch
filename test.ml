@@ -129,4 +129,26 @@ List.iter (fun ((patch, base), (expected_comm_base, expected_comm_patch)) -> try
 
 printf "%d cases tested.\n" (List.length commtest);;
 
+printf "Testing inversion.\n";;
+let invtest = [
+    (* patch, base, inverse *)
+    ([ins "foo"], [], [del 3]);
+    ([del 3], [ins "hey"], [ins "hey"]);
+    ([keep 4], [ins "fred"], [keep 4]);
+    ([keep 6; del 4; ins "tom"; del 9; ins "how r u"], [ins "hello fred whats up"], [keep 6; del 10; ins "fred whats up"]);
+    ([],[],[])
+];;
 
+List.iter (fun (patch, base, expected) -> try
+            let inv = invert patch base in
+                if not (inv = expected) then
+                    printf "Test %s * %s failed: %s != expected %s\n"
+                          (str_of_patch patch)
+                          (str_of_patch base)
+                          (str_of_patch inv)
+                          (str_of_patch expected)
+           with Failure s -> (printf "Test %s * %s blew up: %s.\n" (str_of_patch patch) (str_of_patch base) s))
+           invtest
+;;
+
+printf "%d cases tested.\n" (List.length invtest);;
