@@ -3,7 +3,7 @@ open Printf;;
 open Patch;;
 
 let max_dimension = 2000;;
-let iterations = 1000;; (* number of random sets to try *)
+let iterations = 10000;; (* number of random sets to try *)
 
 let starting_char = int_of_char 'z';; (* keep as int until last second,
                                          so we can do arithmetic *)
@@ -112,7 +112,11 @@ if !program_exit == 0 then
     printf "All association tests succeeded.\n"
 ;;
 
-let comm_iterations = 1000;;
+(*************************************)
+(*    Commutation tests              *)
+(*************************************)
+
+let comm_iterations = 10000;;
 let max_dimension = 10;;
 let comm_status = ref 0;;
 
@@ -145,6 +149,52 @@ done ;;
 if !comm_status == 0 then
     printf "All commutation tests succeeded\n"
 ;;
-
 program_exit := max !program_exit !comm_status;;
+
+(*************************************)
+(*    Inversion tests                *)
+(*************************************)
+
+
+
+let inv_iterations = 10000;;
+let inv_status = ref 0;;
+for i=1 to inv_iterations do
+    (* generate two compatible patches *)
+    let patch_write, base_write, base_read =
+        rand_1upto max_dimension, rand_1upto max_dimension, rand_1upto max_dimension in
+    let patch, ch = random_patch starting_char patch_write base_write in
+    (*let base, _ = random_patch ch base_write base_read in*)
+    (* hacked-up way to make random patch with no keeps *)
+    (* a single reader and writer each of random length (must be in normal_defrag order) *)
+    let base = (let base_reader = del base_read in
+                let base_writer = ins (String.make base_write (char_of_int ch)) in
+                        [base_reader; base_writer]) in
+    try
+        let inv_patch = invert patch base in
+        let applied = apply patch base in
+        let invapplied = apply inv_patch applied in
+        if not (invapplied = base) then begin
+            printf "Inversion test %s * %s failed: produced %s (inv = %s)"
+                    (str_of_patch patch)
+                    (str_of_patch base)
+                    (str_of_patch invapplied)
+                    (str_of_patch inv_patch);
+            inv_status := 1
+        end
+     with Failure s -> begin
+            printf "Inversion test %s * %s failed: produced %s"
+                    (str_of_patch patch)
+                    (str_of_patch base)
+                    s;
+            inv_status := 1
+    end
+done ;;
+
+if !inv_status == 0 then
+    printf "All inversion tests succeeded\n"
+;;
+program_exit := max !program_exit !inv_status;;
+    
+
 exit !program_exit;;
