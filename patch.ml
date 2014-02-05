@@ -96,13 +96,15 @@ type patchAction = DoNothing
                  | Advance of int
 ;;
 
+let do_action action p =
+    match action with
+    | DoNothing -> p
+    | Advance n -> advance p n
+;;
+
 (* returns a function you can use as yield (segment option) patchAction patchAction *)
 let yield_with patch base make_rest=
     fun seg patch_action base_action -> begin
-        let do_action action p =
-            match action with
-            | DoNothing -> p
-            | Advance n -> advance p n in
         let newTail = make_rest (do_action patch_action patch) (do_action base_action base) in
         match seg with
         | None -> newTail
@@ -167,41 +169,50 @@ let rec apply patch base =
 
 (* patch -> base -> (commuted base, commuted patch) *)
 let rec commute patch base =
-    let maybedefrag maybeseg tail = match maybeseg with None -> tail | Some seg -> normal_defrag seg tail in
-    let yield (new_comm_base_seg, new_patch_base_seg) (patch, base) = begin
-        let (comm_base_tail, comm_patch_tail) = commute patch base in
+    let maybedefrag maybeseg tail =
+        match maybeseg with
+        | None -> tail
+        | Some seg -> normal_defrag seg tail in
+    let yield (new_comm_base_seg, new_patch_base_seg) (patch_action, base_action) = begin
+        let (comm_base_tail, comm_patch_tail) = commute (do_action patch_action patch) (do_action base_action base) in
         ( maybedefrag new_comm_base_seg comm_base_tail, maybedefrag new_patch_base_seg comm_patch_tail )
     end in
     match (patch, base) with
     | ([], []) -> ([], [])
     (* rhs del *)
     | (_, (DelChars n)::bxs) ->
-        yield (Some (DelChars n), Some (KeepChars n)) (patch, advance base n)
+        yield (Some (DelChars n), Some (KeepChars n))
+              (DoNothing, Advance n)
     
     (* lhs ins *)
     | ((InsChars s)::pxs, _) ->
         let slen = String.length s in
-        yield (Some (KeepChars slen), Some (InsChars s)) (advance patch slen, base)
+        yield (Some (KeepChars slen), Some (InsChars s))
+              (Advance slen, DoNothing)
 
     (* K*K *)
     | ((KeepChars n)::pxs, (KeepChars m)::bxs) ->
         let consumed = min n m in
-        yield (Some (KeepChars consumed), Some(KeepChars consumed)) (advance patch consumed, advance base consumed)
+        yield (Some (KeepChars consumed), Some(KeepChars consumed))
+              (Advance consumed, Advance consumed)
 
     (* K*I *)
     | ((KeepChars n)::pxs, (InsChars s)::bxs) ->
         let consumed = min n (String.length s) in
-        yield (Some (InsChars (Str.first_chars s consumed)), None) (advance patch consumed, advance base consumed)
+        yield (Some (InsChars (Str.first_chars s consumed)), None)
+              (Advance consumed, Advance consumed)
 
     (* D * K *)
     | ((DelChars n)::pxs, (KeepChars m)::bxs) ->
         let consumed = min n m in
-        yield (None, Some (DelChars consumed)) (advance patch consumed, advance base consumed)
+        yield (None, Some (DelChars consumed))
+              (Advance consumed, Advance consumed)
 
     (* D*I *)
     | ((DelChars n)::_, (InsChars s)::_) ->
         let consumed = min n (String.length s) in
-        yield (None, None) (advance patch consumed, advance base consumed)
+        yield (None, None)
+              (Advance consumed, Advance consumed)
 
     (* starved reader error *)
     | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
