@@ -69,7 +69,7 @@ let advance patch consumed =
 
 (* cons, but check for runs of same-typed segments first *)
 let defrag newhead applied =
-    match (newhead, applied) with
+    match newhead, applied with
     | (InsChars s, (InsChars t)::rest) ->
         (InsChars (s^t))::rest     (* this could become a performance problem *)
     | (DelChars n, (DelChars m)::rest) ->
@@ -109,7 +109,7 @@ let do_action action p =
 ;;
 
 (* returns a function you can use as yield (segment option) patchAction patchAction *)
-let yield_with patch base make_rest=
+let yield_with patch base make_rest =
     fun seg patch_action base_action -> begin
         let newTail = make_rest (do_action patch_action patch) (do_action base_action base) in
         maybe_defrag seg newTail
@@ -119,30 +119,30 @@ let yield_with patch base make_rest=
 (* behold, the function. patch is the patch, base the source *)
 let rec apply patch base =
     let yield = yield_with patch base apply in
-    match(patch, base) with
+    match patch, base with
     (* base case *)
     | ([], []) -> []
 
     (* copy up base del *)
-    | (_, (DelChars n)::rxs) ->
+    | _, (DelChars n)::rxs ->
         yield (Some (DelChars n))
               DoNothing
               (Advance n)
 
     (* copy down patch ins *)
-    | ( (InsChars s)::lxs, _) ->
+    | (InsChars s)::lxs, _ ->
         yield (Some (InsChars s))
               (Advance (String.length s))
               DoNothing
 
     (* patch del *)
-    | ( (DelChars m)::lxs, (KeepChars n)::rxs) ->
+    | (DelChars m)::lxs, (KeepChars n)::rxs ->
         let consumed = (min m n) in
         yield (Some (DelChars consumed))
               (Advance consumed)
               (Advance consumed)
 
-    | ( (DelChars m)::lxs, (InsChars s)::rxs) ->
+    | (DelChars m)::lxs, (InsChars s)::rxs ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
         yield None
@@ -150,14 +150,14 @@ let rec apply patch base =
               (Advance consumed)
         
     (* patch keep *)
-    | ( (KeepChars m)::lxs, (KeepChars n)::rxs) ->
+    | (KeepChars m)::lxs, (KeepChars n)::rxs ->
         let consumed = (min m n) in
         (* this defrag only matters for patches that start off with repeated segments *)
         yield (Some (KeepChars consumed))
               (Advance consumed)
               (Advance consumed)
 
-    | ( (KeepChars m)::lxs, (InsChars s)::rxs) ->
+    | (KeepChars m)::lxs, (InsChars s)::rxs ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
         yield (Some (InsChars (Str.first_chars s consumed)))
@@ -165,11 +165,11 @@ let rec apply patch base =
               (Advance consumed)
 
     (* starved reader error *)
-    | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
-    | ( (DelChars _)::_, []) -> failwith "Starved deleter"
+    | (KeepChars _)::_, [] -> failwith "Starved keeper"
+    | (DelChars _)::_, [] -> failwith "Starved deleter"
     (* dangling writer error *)
-    | ( [], (InsChars _)::_ ) -> failwith "Dangling insert in source"
-    | ( [], (KeepChars _)::_) -> failwith "Dangling Keeper in source"
+    | [], (InsChars _)::_  -> failwith "Dangling insert in source"
+    | [], (KeepChars _)::_ -> failwith "Dangling Keeper in source"
 ;;
 
 (* patch -> base -> (commuted base, commuted patch) *)
@@ -178,8 +178,8 @@ let rec commute patch base =
         let (comm_base_tail, comm_patch_tail) = commute (do_action patch_action patch) (do_action base_action base) in
         ( maybe_defrag new_comm_base_seg comm_base_tail, maybe_defrag new_patch_base_seg comm_patch_tail )
     end in
-    match (patch, base) with
-    | ([], []) -> ([], [])
+    match patch, base with
+    | [], [] -> [], []
     (* rhs del *)
     | (_, (DelChars n)::bxs) ->
         yield (Some (DelChars n), Some (KeepChars n))
@@ -226,7 +226,7 @@ let rec commute patch base =
 
 (* invert patch with respect to base. That is, the inverse of D will
    insert what was in the base there, if it was chars. This will fail for D*K columns,
-   because we don't know how to invert those *)
+   because we don't (and can't!) know how to invert those *)
 let rec invert patch base =
     let yield = yield_with patch base invert in
     match patch, base with
