@@ -181,46 +181,46 @@ let rec commute patch base =
     match patch, base with
     | [], [] -> [], []
     (* rhs del *)
-    | (_, (DelChars n)::bxs) ->
+    | _, (DelChars n)::bxs ->
         yield (Some (DelChars n), Some (KeepChars n))
               (DoNothing, Advance n)
     
     (* lhs ins *)
-    | ((InsChars s)::pxs, _) ->
+    | (InsChars s)::pxs, _ ->
         let slen = String.length s in
         yield (Some (KeepChars slen), Some (InsChars s))
               (Advance slen, DoNothing)
 
     (* K*K *)
-    | ((KeepChars n)::pxs, (KeepChars m)::bxs) ->
+    | (KeepChars n)::pxs, (KeepChars m)::bxs ->
         let consumed = min n m in
         yield (Some (KeepChars consumed), Some(KeepChars consumed))
               (Advance consumed, Advance consumed)
 
     (* K*I *)
-    | ((KeepChars n)::pxs, (InsChars s)::bxs) ->
+    | (KeepChars n)::pxs, (InsChars s)::bxs ->
         let consumed = min n (String.length s) in
         yield (Some (InsChars (Str.first_chars s consumed)), None)
               (Advance consumed, Advance consumed)
 
     (* D * K *)
-    | ((DelChars n)::pxs, (KeepChars m)::bxs) ->
+    | (DelChars n)::pxs, (KeepChars m)::bxs ->
         let consumed = min n m in
         yield (None, Some (DelChars consumed))
               (Advance consumed, Advance consumed)
 
     (* D*I *)
-    | ((DelChars n)::_, (InsChars s)::_) ->
+    | (DelChars n)::_, (InsChars s)::_ ->
         let consumed = min n (String.length s) in
         yield (None, None)
               (Advance consumed, Advance consumed)
 
     (* starved reader error *)
-    | ( (KeepChars _)::_, []) -> failwith "Starved keeper"
-    | ( (DelChars _)::_, []) -> failwith "Starved deleter"
+    | (KeepChars _)::_, [] -> failwith "Starved keeper"
+    | (DelChars _)::_, [] -> failwith "Starved deleter"
     (* dangling writer error *)
-    | ( [], (InsChars _)::_ ) -> failwith "Dangling insert in source"
-    | ( [], (KeepChars _)::_) -> failwith "Dangling Keeper in source"
+    | [], (InsChars _)::_  -> failwith "Dangling insert in source"
+    | [], (KeepChars _)::_ -> failwith "Dangling Keeper in source"
 ;;
 
 
