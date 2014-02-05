@@ -92,6 +92,12 @@ let normal_defrag newhead applied =
         defrag newhead applied
 ;;
 
+let maybe_defrag seg tail =
+    match seg with
+    | None -> tail
+    | Some s -> normal_defrag s tail
+;;
+
 type patchAction = DoNothing
                  | Advance of int
 ;;
@@ -106,9 +112,8 @@ let do_action action p =
 let yield_with patch base make_rest=
     fun seg patch_action base_action -> begin
         let newTail = make_rest (do_action patch_action patch) (do_action base_action base) in
-        match seg with
-        | None -> newTail
-        | Some seg -> normal_defrag seg newTail end
+        maybe_defrag seg newTail
+    end
 ;;
 
 (* behold, the function. patch is the patch, base the source *)
@@ -169,13 +174,9 @@ let rec apply patch base =
 
 (* patch -> base -> (commuted base, commuted patch) *)
 let rec commute patch base =
-    let maybedefrag maybeseg tail =
-        match maybeseg with
-        | None -> tail
-        | Some seg -> normal_defrag seg tail in
     let yield (new_comm_base_seg, new_patch_base_seg) (patch_action, base_action) = begin
         let (comm_base_tail, comm_patch_tail) = commute (do_action patch_action patch) (do_action base_action base) in
-        ( maybedefrag new_comm_base_seg comm_base_tail, maybedefrag new_patch_base_seg comm_patch_tail )
+        ( maybe_defrag new_comm_base_seg comm_base_tail, maybe_defrag new_patch_base_seg comm_patch_tail )
     end in
     match (patch, base) with
     | ([], []) -> ([], [])
