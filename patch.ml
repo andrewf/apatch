@@ -41,30 +41,33 @@ let writeDim seg =
 ;;
 
 let advance patch consumed =
-    match patch with
-    | [] -> failwith "tried to advance empty patch"
-    | (KeepChars n)::pxs -> begin
-        if n > consumed then
-            (keep (n-consumed))::pxs
-        else if n = consumed then
-            pxs
-        else failwith "advanced keep segment too far"
-    end
-    | (DelChars n)::pxs -> begin
-        if n > consumed then
-            (del (n-consumed))::pxs
-        else if n = consumed then
-            pxs
-        else failwith "advanced del segment too far"
-    end
-    | (InsChars s)::pxs ->
-        let slen = String.length s in begin
-            if slen > consumed then
-                (ins (last_chars s (slen-consumed)))::pxs
-            else if slen = consumed then
+    if consumed > 0 then
+        match patch with
+        | [] -> failwith "tried to advance empty patch"
+        | (KeepChars n)::pxs -> begin
+            if n > consumed then
+                (keep (n-consumed))::pxs
+            else if n = consumed then
                 pxs
-            else failwith "advanced ins segment too far"
+            else failwith "advanced keep segment too far"
         end
+        | (DelChars n)::pxs -> begin
+            if n > consumed then
+                (del (n-consumed))::pxs
+            else if n = consumed then
+                pxs
+            else failwith "advanced del segment too far"
+        end
+        | (InsChars s)::pxs ->
+            let slen = String.length s in begin
+                if slen > consumed then
+                    (ins (last_chars s (slen-consumed)))::pxs
+                else if slen = consumed then
+                    pxs
+                else failwith "advanced ins segment too far"
+            end
+    else
+        patch
 ;;
 
 (* cons, but check for runs of same-typed segments first *)
@@ -98,20 +101,10 @@ let maybe_defrag seg tail =
     | Some s -> normal_defrag s tail
 ;;
 
-type patchAction = DoNothing
-                 | Advance of int
-;;
-
-let do_action action p =
-    match action with
-    | DoNothing -> p
-    | Advance n -> advance p n
-;;
-
 (* returns a function you can use as yield (segment option) patchAction patchAction *)
 let yield_with patch base make_rest =
-    fun seg patch_action base_action -> begin
-        let newTail = make_rest (do_action patch_action patch) (do_action base_action base) in
+    fun seg patch_consumed base_consumed -> begin
+        let newTail = make_rest (advance patch patch_consumed) (advance base base_consumed) in
         maybe_defrag seg newTail
     end
 ;;
@@ -125,44 +118,32 @@ let rec apply patch base =
 
     (* copy up base del *)
     | _, (DelChars n)::rxs ->
-        yield (Some (DelChars n))
-              DoNothing
-              (Advance n)
+        yield (Some (DelChars n)) 0 n
 
     (* copy down patch ins *)
     | (InsChars s)::lxs, _ ->
-        yield (Some (InsChars s))
-              (Advance (String.length s))
-              DoNothing
+        yield (Some (InsChars s)) (String.length s) 0
 
     (* patch del *)
     | (DelChars m)::lxs, (KeepChars n)::rxs ->
         let consumed = (min m n) in
-        yield (Some (DelChars consumed))
-              (Advance consumed)
-              (Advance consumed)
+        yield (Some (DelChars consumed)) consumed consumed
 
     | (DelChars m)::lxs, (InsChars s)::rxs ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
-        yield None
-              (Advance consumed)
-              (Advance consumed)
+        yield None consumed consumed
         
     (* patch keep *)
     | (KeepChars m)::lxs, (KeepChars n)::rxs ->
         let consumed = (min m n) in
         (* this defrag only matters for patches that start off with repeated segments *)
-        yield (Some (KeepChars consumed))
-              (Advance consumed)
-              (Advance consumed)
+        yield (Some (KeepChars consumed)) consumed consumed
 
     | (KeepChars m)::lxs, (InsChars s)::rxs ->
         let slen = (String.length s) in
         let consumed = (min m slen) in
-        yield (Some (InsChars (Str.first_chars s consumed)))
-              (Advance consumed)
-              (Advance consumed)
+        yield (Some (InsChars (Str.first_chars s consumed))) consumed consumed
 
     (* starved reader error *)
     | (KeepChars _)::_, [] -> failwith "Starved keeper"
@@ -174,8 +155,8 @@ let rec apply patch base =
 
 (* patch -> base -> (commuted base, commuted patch) *)
 let rec commute patch base =
-    let yield (new_comm_base_seg, new_patch_base_seg) (patch_action, base_action) = begin
-        let (comm_base_tail, comm_patch_tail) = commute (do_action patch_action patch) (do_action base_action base) in
+    let yield (new_comm_base_seg, new_patch_base_seg) (patch_consumed, base_consumed) = begin
+        let (comm_base_tail, comm_patch_tail) = commute (advance patch patch_consumed) (advance base base_consumed) in
         ( maybe_defrag new_comm_base_seg comm_base_tail, maybe_defrag new_patch_base_seg comm_patch_tail )
     end in
     match patch, base with
@@ -183,37 +164,37 @@ let rec commute patch base =
     (* rhs del *)
     | _, (DelChars n)::bxs ->
         yield (Some (DelChars n), Some (KeepChars n))
-              (DoNothing, Advance n)
+              (0, n)
     
     (* lhs ins *)
     | (InsChars s)::pxs, _ ->
         let slen = String.length s in
         yield (Some (KeepChars slen), Some (InsChars s))
-              (Advance slen, DoNothing)
+              (slen, 0)
 
     (* K*K *)
     | (KeepChars n)::pxs, (KeepChars m)::bxs ->
         let consumed = min n m in
         yield (Some (KeepChars consumed), Some(KeepChars consumed))
-              (Advance consumed, Advance consumed)
+              (consumed, consumed)
 
     (* K*I *)
     | (KeepChars n)::pxs, (InsChars s)::bxs ->
         let consumed = min n (String.length s) in
         yield (Some (InsChars (Str.first_chars s consumed)), None)
-              (Advance consumed, Advance consumed)
+              (consumed, consumed)
 
     (* D * K *)
     | (DelChars n)::pxs, (KeepChars m)::bxs ->
         let consumed = min n m in
         yield (None, Some (DelChars consumed))
-              (Advance consumed, Advance consumed)
+              (consumed, consumed)
 
     (* D*I *)
     | (DelChars n)::_, (InsChars s)::_ ->
         let consumed = min n (String.length s) in
         yield (None, None)
-              (Advance consumed, Advance consumed)
+              (consumed, consumed)
 
     (* starved reader error *)
     | (KeepChars _)::_, [] -> failwith "Starved keeper"
@@ -233,18 +214,18 @@ let rec invert patch base =
     | [], [] -> []
     (* base del is wholly irrelevant *)
     | _, (DelChars n)::_ ->
-        yield None DoNothing (Advance n)
+        yield None 0 n
     | (InsChars s)::_, _ ->
         let len = String.length s in
-        yield (Some (DelChars len)) (Advance len) DoNothing
+        yield (Some (DelChars len)) len 0
     | (DelChars n)::_, (KeepChars m)::_ ->
         failwith "can't invert D*K"
     | (DelChars n)::_, (InsChars s)::_ ->
         let len = String.length s in
         let m = min n len in
-        yield (Some (InsChars (Str.first_chars s m))) (Advance m) (Advance m)
+        yield (Some (InsChars (Str.first_chars s m))) m m
     | (KeepChars n)::_, _::_ -> (* base must have at least one element for keep to be valid *)
-        yield (Some (KeepChars n)) (Advance n) (Advance n)
+        yield (Some (KeepChars n)) n n
     (* starvation/dangling errors *)
     | (KeepChars _)::_, [] -> failwith "Starved keeper while inverting"
     | (DelChars _)::_, [] -> failwith "Starved deleter while inverting"
