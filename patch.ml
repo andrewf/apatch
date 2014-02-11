@@ -20,7 +20,7 @@ let str_of_patchSegment segment =
 
 let str_of_patch p =
     ("[" ^ (List.fold_left
-            (fun prev seg -> (prev ^ (str_of_patchSegment seg) ^ ", "))
+            (fun prev seg -> (prev ^ (str_of_patchSegment seg) ^ " "))
             ""
             p) ^ "]")
 ;;
