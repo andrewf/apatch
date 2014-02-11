@@ -40,7 +40,7 @@ let writeDim seg =
     | InsChars s -> String.length s
 ;;
 
-let advance patch consumed =
+let advance consumed patch =
     if consumed > 0 then
         match patch with
         | [] -> failwith "tried to advance empty patch"
@@ -95,6 +95,8 @@ let normal_defrag newhead applied =
         defrag newhead applied
 ;;
 
+(* cons if first argument is not None. makes it easier to express algorithms
+   which may or may not actually produce a new segment *)
 let maybe_defrag seg tail =
     match seg with
     | None -> tail
@@ -104,7 +106,7 @@ let maybe_defrag seg tail =
 (* returns a function you can use as yield (segment option) patchAction patchAction *)
 let yield_with patch base make_rest =
     fun seg patch_consumed base_consumed -> begin
-        let newTail = make_rest (advance patch patch_consumed) (advance base base_consumed) in
+        let newTail = make_rest (advance patch_consumed patch) (advance base_consumed base) in
         maybe_defrag seg newTail
     end
 ;;
@@ -156,7 +158,7 @@ let rec apply patch base =
 (* patch -> base -> (commuted base, commuted patch) *)
 let rec commute patch base =
     let yield (new_comm_base_seg, new_patch_base_seg) (patch_consumed, base_consumed) = begin
-        let (comm_base_tail, comm_patch_tail) = commute (advance patch patch_consumed) (advance base base_consumed) in
+        let (comm_base_tail, comm_patch_tail) = commute (advance patch_consumed patch) (advance base_consumed base) in
         ( maybe_defrag new_comm_base_seg comm_base_tail, maybe_defrag new_patch_base_seg comm_patch_tail )
     end in
     match patch, base with
@@ -212,20 +214,26 @@ let rec invert patch base =
     let yield = yield_with patch base invert in
     match patch, base with
     | [], [] -> []
+
     (* base del is wholly irrelevant *)
     | _, (DelChars n)::_ ->
         yield None 0 n
+
     | (InsChars s)::_, _ ->
         let len = String.length s in
         yield (Some (DelChars len)) len 0
+
     | (DelChars n)::_, (KeepChars m)::_ ->
         failwith "can't invert D*K"
+
     | (DelChars n)::_, (InsChars s)::_ ->
         let len = String.length s in
         let m = min n len in
         yield (Some (InsChars (Str.first_chars s m))) m m
+
     | (KeepChars n)::_, _::_ -> (* base must have at least one element for keep to be valid *)
         yield (Some (KeepChars n)) n n
+
     (* starvation/dangling errors *)
     | (KeepChars _)::_, [] -> failwith "Starved keeper while inverting"
     | (DelChars _)::_, [] -> failwith "Starved deleter while inverting"
