@@ -104,7 +104,7 @@ let maybe_defrag seg tail =
 ;;
 
 (* returns a function you can use as yield (segment option) patchAction patchAction *)
-let yield_with patch base make_rest =
+let yield_with make_rest patch base =
     fun seg patch_consumed base_consumed -> begin
         let newTail = make_rest (advance patch_consumed patch) (advance base_consumed base) in
         maybe_defrag seg newTail
@@ -113,7 +113,7 @@ let yield_with patch base make_rest =
 
 (* behold, the function. patch is the patch, base the source *)
 let rec apply patch base =
-    let yield = yield_with patch base apply in
+    let yield = yield_with apply patch base in
     match patch, base with
     (* base case *)
     | ([], []) -> []
@@ -211,7 +211,7 @@ let rec commute patch base =
    insert what was in the base there, if it was chars. This will fail for D*K columns,
    because we don't (and can't!) know how to invert those *)
 let rec invert patch base =
-    let yield = yield_with patch base invert in
+    let yield = yield_with invert patch base in
     match patch, base with
     | [], [] -> []
 
